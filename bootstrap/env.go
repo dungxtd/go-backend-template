@@ -36,8 +36,12 @@ type Env struct {
 	TwilioAuthToken   string `mapstructure:"TWILIO_AUTH_TOKEN"`
 	TwilioPhoneNumber string `mapstructure:"TWILIO_PHONE_NUMBER"`
 
+	//Unimtx
 	UnimtxAccessKeyID     string `mapstructure:"UNIMTX_ACCESS_KEY_ID"`
 	UnimtxAccessKeySecret string `mapstructure:"UNIMTX_ACCESS_KEY_SECRET"`
+
+	//SpeedSMS
+	SpeedSmsToken string `mapstructure:"SPEEDSMS_TOKEN"`
 }
 
 func NewEnv() *Env {
