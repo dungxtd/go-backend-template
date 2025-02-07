@@ -22,7 +22,7 @@ func main() {
 
 	gin := gin.Default()
 
-	route.Setup(env, timeout, db, app.Mailer, app.UnimtxClient, gin)
+	route.Setup(env, timeout, db, app.Mailer, app.SmsAdapter, gin)
 
 	gin.Run(env.ServerAddress)
 }

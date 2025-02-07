@@ -1,21 +1,23 @@
 package controller
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/sportgo-app/sportgo-go/bootstrap"
 	"github.com/sportgo-app/sportgo-go/domain"
 	"github.com/sportgo-app/sportgo-go/email"
 	"github.com/sportgo-app/sportgo-go/sms"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"golang.org/x/crypto/bcrypt"
-	"net/http"
 )
 
 type SignupController struct {
 	SignupUsecase domain.SignupUsecase
 	Env           *bootstrap.Env
 	Mailer        email.MailClient
-	UnimtxClient  sms.UnimtxClient
+	SmsAdapter    sms.SmsAdapter
 }
 
 func (sc *SignupController) Signup(c *gin.Context) {
@@ -28,10 +30,10 @@ func (sc *SignupController) Signup(c *gin.Context) {
 	}
 
 	_, err = sc.SignupUsecase.GetUserByEmail(c, request.Email)
-	if err == nil {
-		c.JSON(http.StatusConflict, domain.ErrorResponse{Message: "User already exists with the given email"})
-		return
-	}
+	// if err == nil {
+	// 	c.JSON(http.StatusConflict, domain.ErrorResponse{Message: "User already exists with the given email"})
+	// 	return
+	// }
 
 	encryptedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(request.Password),
@@ -73,10 +75,6 @@ func (sc *SignupController) Signup(c *gin.Context) {
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	}
-
-	go func() {
-		sc.UnimtxClient.SendOTP("+84976447558")
-	}()
 
 	//tokenURL, _ := url.JoinPath("", "lt.Token")
 

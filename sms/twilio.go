@@ -2,22 +2,17 @@ package sms
 
 import (
 	"fmt"
-	"github.com/twilio/twilio-go"
 	"log"
 
+	"github.com/twilio/twilio-go"
 	openapi "github.com/twilio/twilio-go/rest/api/v2010"
 )
-
-type TwilioClient interface {
-	SendOTP(to string, otp string) error
-	CheckBalance(accountSid string)
-}
 
 type twilioClient struct {
 	tc *twilio.RestClient
 }
 
-func NewTwilioClient(accountSid string, authToken string) TwilioClient {
+func NewTwilioClient(accountSid string, authToken string) SmsAdapter {
 	tc := twilio.NewRestClientWithParams(twilio.ClientParams{
 		Username: accountSid,
 		Password: authToken,
@@ -25,17 +20,17 @@ func NewTwilioClient(accountSid string, authToken string) TwilioClient {
 	return &twilioClient{tc: tc}
 }
 
-func (rc *twilioClient) CheckBalance(accountSid string) {
-	params := &openapi.FetchBalanceParams{}
-	params.SetPathAccountSid(accountSid)
-	balance, err := rc.tc.Api.FetchBalance(params)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Printf("Twilio account balance: %s %s", *balance.Balance, *balance.Currency)
-}
+// func (rc *twilioClient) CheckBalance(accountSid string) {
+// 	params := &openapi.FetchBalanceParams{}
+// 	params.SetPathAccountSid(accountSid)
+// 	balance, err := rc.tc.Api.FetchBalance(params)
+// 	if err != nil {
+// 		log.Fatal(err)
+// 	}
+// 	log.Printf("Twilio account balance: %s %s", *balance.Balance, *balance.Currency)
+// }
 
-func (rc *twilioClient) SendOTP(to string, otp string) error {
+func (rc *twilioClient) SendMessage(to string, otp string) bool {
 	params := &openapi.CreateMessageParams{}
 	params.SetTo(to)
 	params.SetFrom("+84976447558")
@@ -46,9 +41,9 @@ func (rc *twilioClient) SendOTP(to string, otp string) error {
 	_, err := rc.tc.Api.CreateMessage(params)
 	if err != nil {
 		log.Println(err.Error())
-		return err
+		return false
 	}
 	log.Println("SMS sent successfully!")
 
-	return nil
+	return true
 }

@@ -7,10 +7,10 @@ import (
 )
 
 type Application struct {
-	Env          *Env
-	Mongo        mongo.Client
-	Mailer       email.MailClient
-	UnimtxClient sms.UnimtxClient
+	Env        *Env
+	Mongo      mongo.Client
+	Mailer     email.MailClient
+	SmsAdapter sms.SmsAdapter
 }
 
 func App() Application {
@@ -18,7 +18,8 @@ func App() Application {
 	app.Env = NewEnv()
 	app.Mongo = NewMongoDatabase(app.Env)
 	app.Mailer = NewSMTPMailer(app.Env)
-	app.UnimtxClient = NewUnimtxClient(app.Env)
+	// app.UnimtxClient = NewUnimtxClient(app.Env)
+	app.SmsAdapter = NewSmsSpeedAdapter(app.Env)
 	return *app
 }
 
