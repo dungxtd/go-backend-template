@@ -20,6 +20,7 @@ func App() Application {
 	app.Mailer = NewSMTPMailer(app.Env)
 	// app.UnimtxClient = NewUnimtxClient(app.Env)
 	app.SmsAdapter = NewSmsSpeedAdapter(app.Env)
+	app.Storage = NewStorage(app.Env)
 	return *app
 }
 

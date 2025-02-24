@@ -42,6 +42,12 @@ type Env struct {
 
 	//SpeedSMS
 	SpeedSmsToken string `mapstructure:"SPEEDSMS_TOKEN"`
+
+	//Minio
+	MinioEndpoint    string `mapstructure:"MINIO_ENDPOINT"`
+	MinioAccessKeyID string `mapstructure:"MINIO_ACCESS_KEY_ID"`
+	MinioSecretKey   string `mapstructure:"MINIO_SECRET"`
+	MinioUseSSL      bool   `mapstructure:"MINIO_USE_SSL"`
 }
 
 func NewEnv() *Env {
