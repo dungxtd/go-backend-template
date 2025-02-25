@@ -4,6 +4,7 @@ import (
 	"github.com/sportgo-app/sportgo-go/email"
 	"github.com/sportgo-app/sportgo-go/mongo"
 	"github.com/sportgo-app/sportgo-go/sms"
+	"github.com/sportgo-app/sportgo-go/storage"
 )
 
 type Application struct {
@@ -11,6 +12,7 @@ type Application struct {
 	Mongo      mongo.Client
 	Mailer     email.MailClient
 	SmsAdapter sms.SmsAdapter
+	Storage    storage.MinioClient
 }
 
 func App() Application {
