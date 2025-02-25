@@ -1,11 +1,25 @@
-FROM golang:1.19-alpine
-
-RUN mkdir /app
-
-ADD . /app
+FROM golang:1.23.3-alpine as build
 
 WORKDIR /app
 
-RUN go build -o main cmd/main.go
+# Copy the Go module files
+COPY go.mod .
+COPY go.sum .
 
-CMD ["/app/main"]
+# Download the Go module dependencies
+RUN go mod download
+
+COPY . .
+
+RUN go build -o /main ./
+
+FROM alpine:latest as run
+
+# Copy the application executable from the build image
+COPY --from=build /main /main
+COPY --from=build /app/.env /app/.env
+COPY --from=build /app/templates /app/templates
+
+WORKDIR /app
+EXPOSE 8080
+CMD ["/main"]

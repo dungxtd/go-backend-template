@@ -3,11 +3,11 @@ package bootstrap
 import (
 	"context"
 	"fmt"
-	"github.com/sportgo-app/sportgo-go/postgres"
 	"log"
 	"time"
 
 	"github.com/sportgo-app/sportgo-go/mongo"
+	"github.com/sportgo-app/sportgo-go/postgres"
 )
 
 func NewMongoDatabase(env *Env) mongo.Client {
