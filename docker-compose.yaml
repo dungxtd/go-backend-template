@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  web:
+  sportgo-go:
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,6 +13,7 @@ services:
       - "$PORT:$PORT"
     depends_on:
       - mongodb
+      - postgres
 
   mongodb:
     image: mongo:6.0
@@ -20,12 +21,24 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=$DB_USER
-      - MONGO_INITDB_ROOT_PASSWORD=$DB_PASS
+      - MONGO_INITDB_ROOT_USERNAME=$MONGO_DB_USER
+      - MONGO_INITDB_ROOT_PASSWORD=$MONGO_DB_PASS
     ports:
-      - "$DB_PORT:$DB_PORT"
+      - "$MONGO_DB_PORT:$MONGO_DB_PORT"
     volumes:
-      - dbdata:/data/db
+      - mongodb:/data/db
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "$POSTGRES_DB_PORT:$POSTGRES_DB_PORT"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=$POSTGRES_DB_PASS
+      - POSTGRES_DB=$POSTGRES_DB_NAME
 
 volumes:
-  dbdata:
+  mongodb:
+  postgres:
