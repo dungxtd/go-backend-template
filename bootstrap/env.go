@@ -10,11 +10,18 @@ type Env struct {
 	AppEnv         string `mapstructure:"APP_ENV"`
 	ServerAddress  string `mapstructure:"SERVER_ADDRESS"`
 	ContextTimeout int    `mapstructure:"CONTEXT_TIMEOUT"`
-	DBHost         string `mapstructure:"DB_HOST"`
-	DBPort         string `mapstructure:"DB_PORT"`
-	DBUser         string `mapstructure:"DB_USER"`
-	DBPass         string `mapstructure:"DB_PASS"`
-	DBName         string `mapstructure:"DB_NAME"`
+	MongoDBHost    string `mapstructure:"MONGO_DB_HOST"`
+	MongoDBPort    string `mapstructure:"MONGO_DB_PORT"`
+	MongoDBUser    string `mapstructure:"MONGO_DB_USER"`
+	MongoDBPass    string `mapstructure:"MONGO_DB_PASS"`
+	MongoDBName    string `mapstructure:"MONGO_DB_NAME"`
+
+	PostgresDBHost  string `mapstructure:"POSTGRES_DB_HOST"`
+	PostgresDBPort  string `mapstructure:"POSTGRES_DB_PORT"`
+	PostgresDBUser  string `mapstructure:"POSTGRES_DB_USER"`
+	PostgresDBPass  string `mapstructure:"POSTGRES_DB_PASS"`
+	PostgresDBName  string `mapstructure:"POSTGRES_DB_NAME"`
+	PostgresSSLMode string `mapstructure:"POSTGRES_SSL_MODE"`
 
 	//Auth
 	AccessTokenExpiryHour  int    `mapstructure:"ACCESS_TOKEN_EXPIRY_HOUR"`

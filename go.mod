@@ -6,6 +6,7 @@ require (
 	github.com/gin-gonic/gin v1.8.2
 	github.com/go-mail/mail v2.3.1+incompatible
 	github.com/golang-jwt/jwt/v4 v4.4.3
+	github.com/jackc/pgx/v5 v5.7.2
 	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
 	github.com/minio/minio-go/v7 v7.0.87
 	github.com/spf13/viper v1.14.0
@@ -13,6 +14,7 @@ require (
 	github.com/twilio/twilio-go v1.23.11
 	github.com/unimtx/uni-go-sdk v0.3.0
 	github.com/vanng822/go-premailer v1.23.0
+	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2
 	go.mongodb.org/mongo-driver v1.11.1
 	golang.org/x/crypto v0.33.0
 )
@@ -34,6 +36,9 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
