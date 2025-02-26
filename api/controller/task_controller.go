@@ -4,8 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
 	"github.com/sportgo-app/sportgo-go/domain"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type TaskController struct {
@@ -22,9 +23,11 @@ func (tc *TaskController) Create(c *gin.Context) {
 	}
 
 	userID := c.GetString("x-user-id")
-	task.ID = primitive.NewObjectID()
+	// Generate UUID for task ID
+	task.ID = uuid.New().String()
 
-	task.UserID, err = primitive.ObjectIDFromHex(userID)
+	// Convert string userID to UUID
+	task.UserID = userID
 	if err != nil {
 		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
 		return

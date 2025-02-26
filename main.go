@@ -15,14 +15,16 @@ func main() {
 
 	env := app.Env
 
-	db := app.Mongo.Database(env.MongoDBName)
+	// mongo := app.Mongo.Database(env.MongoDBName)
 	defer app.CloseDBConnection()
+
+	postgres := app.Postgres.Database()
 
 	timeout := time.Duration(env.ContextTimeout) * time.Second
 
 	gin := gin.Default()
 
-	route.Setup(env, timeout, db, app.Mailer, app.SmsAdapter, gin)
+	route.Setup(env, timeout, postgres, app.Mailer, app.SmsAdapter, gin)
 
 	gin.Run(env.ServerAddress)
 }

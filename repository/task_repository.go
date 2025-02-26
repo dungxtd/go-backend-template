@@ -4,50 +4,47 @@ import (
 	"context"
 
 	"github.com/sportgo-app/sportgo-go/domain"
-	"github.com/sportgo-app/sportgo-go/mongo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/sportgo-app/sportgo-go/postgres"
 )
 
 type taskRepository struct {
-	database   mongo.Database
-	collection string
+	db    postgres.Database
+	table string
 }
 
-func NewTaskRepository(db mongo.Database, collection string) domain.TaskRepository {
+func NewTaskRepository(db postgres.Database, table string) domain.TaskRepository {
 	return &taskRepository{
-		database:   db,
-		collection: collection,
+		db:    db,
+		table: table,
 	}
 }
 
 func (tr *taskRepository) Create(c context.Context, task *domain.Task) error {
-	collection := tr.database.Collection(tr.collection)
-
-	_, err := collection.InsertOne(c, task)
-
+	query := `INSERT INTO ` + tr.table + ` (id, title, user_id) VALUES ($1, $2, $3)`
+	_, err := tr.db.Exec(c, query, task.ID, task.Title, task.UserID)
 	return err
 }
 
 func (tr *taskRepository) FetchByUserID(c context.Context, userID string) ([]domain.Task, error) {
-	collection := tr.database.Collection(tr.collection)
-
-	var tasks []domain.Task
-
-	idHex, err := primitive.ObjectIDFromHex(userID)
-	if err != nil {
-		return tasks, err
-	}
-
-	cursor, err := collection.Find(c, bson.M{"userID": idHex})
+	query := `SELECT id, title, user_id FROM ` + tr.table + ` WHERE user_id = $1`
+	rows, err := tr.db.Query(c, query, userID)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	err = cursor.All(c, &tasks)
-	if tasks == nil {
-		return []domain.Task{}, err
+	var tasks []domain.Task
+	for rows.Next() {
+		var task domain.Task
+		err = rows.Scan(&task.ID, &task.Title, &task.UserID)
+		if err != nil {
+			return nil, err
+		}
+		tasks = append(tasks, task)
 	}
 
-	return tasks, err
+	if tasks == nil {
+		return []domain.Task{}, nil
+	}
+	return tasks, nil
 }
