@@ -2,271 +2,237 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"fmt"
-	"github.com/jackc/pgx/v5"
-	"log"
 	"regexp"
 	"strings"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/xwb1989/sqlparser"
+	_ "github.com/lib/pq"
 )
 
-// Client interface abstracts the PostgreSQL client
-type Client interface {
-	Database(string) Database
-	Disconnect(context.Context) error
-	Ping(context.Context) error
-}
+var (
+	ErrInvalidSQLInput = errors.New("invalid SQL input detected")
+	// Regular expression to detect common SQL injection patterns
+	sqlInjectionPattern = regexp.MustCompile(`(?i)(--|--%|;s*$|/\*|\*/|@@|sys\.|sysobjects\.|syscolumns\.|xp_\w+|sp_\w+|exec\s+\w+|execute\s+\w+|WAITFOR\s+DELAY\s+'|WAITFOR\s+TIME\s+'|;\s*SHUTDOWN\s+|;s*xp_\w+|'\s*OR\s*'\d+'\s*=\s*'\d+'|'\s*OR\s*'\w+'\s*=\s*'\w+'|'\s*OR\s*'.*?'\s*=\s*'.*?')`)
+)
 
-// Database interface abstracts PostgreSQL database operations
 type Database interface {
-	Table(string) Table
+	Exec(context.Context, string, ...interface{}) (sql.Result, error)
+	Query(context.Context, string, ...interface{}) (Rows, error)
+	QueryRow(context.Context, string, ...interface{}) Row
+	Begin(context.Context) (Tx, error)
 	Client() Client
 }
 
-// Table interface abstracts PostgreSQL table operations
-type Table interface {
-	FindOne(context.Context, []string, string, ...interface{}) SingleResult
-	FindMany(context.Context, []string, string, ...interface{}) (Cursor, error)
-	InsertOne(context.Context, map[string]interface{}) error
-	InsertMany(context.Context, []map[string]interface{}) error
-	UpdateOne(context.Context, map[string]interface{}, map[string]interface{}) error
-	UpdateMany(context.Context, map[string]interface{}, map[string]interface{}) error
-	DeleteOne(context.Context, map[string]interface{}) error
-	DeleteMany(context.Context, map[string]interface{}) error
-}
-
-// SingleResult abstracts a single query result
-type SingleResult interface {
+type Row interface {
 	Scan(dest ...interface{}) error
 }
 
-// Cursor abstracts query results
-type Cursor interface {
+type Rows interface {
+	Close() error
 	Next() bool
 	Scan(dest ...interface{}) error
-	Close()
 }
 
-// postgresClient holds the pgx pool
+type Tx interface {
+	Commit() error
+	Rollback() error
+	Exec(context.Context, string, ...interface{}) (sql.Result, error)
+	Query(context.Context, string, ...interface{}) (Rows, error)
+	QueryRow(context.Context, string, ...interface{}) Row
+}
+
+type Client interface {
+	Connect(context.Context) error
+	Close() error
+	Ping(context.Context) error
+	Database() Database
+}
+
 type postgresClient struct {
-	pool *pgxpool.Pool
+	db *sql.DB
 }
 
-// postgresDatabase holds the db name
 type postgresDatabase struct {
-	name   string
-	client *postgresClient
+	db *sql.DB
 }
 
-// postgresTable represents a table
-type postgresTable struct {
-	db    *postgresDatabase
-	table string
+type postgresRow struct {
+	row *sql.Row
 }
 
-func (pt *postgresTable) UpdateMany(ctx context.Context, m map[string]interface{}, m2 map[string]interface{}) error {
-	//TODO implement me
-	panic("implement me")
+type postgresRows struct {
+	rows *sql.Rows
 }
 
-func (pt *postgresTable) DeleteMany(ctx context.Context, m map[string]interface{}) error {
-	//TODO implement me
-	panic("implement me")
+type postgresTx struct {
+	tx *sql.Tx
 }
 
-// postgresSingleResult represents a single result
-type postgresSingleResult struct {
-	err error
-	row pgx.Row
-}
-
-// postgresCursor represents multiple rows
-type postgresCursor struct {
-	rows pgx.Row
-}
-
-func (pc *postgresCursor) Next() bool {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (pc *postgresCursor) Close() {
-	//TODO implement me
-	panic("implement me")
-}
-
-// NewClient creates a new Postgres client
-func NewClient(dsn string) (Client, error) {
-	pool, err := pgxpool.New(context.Background(), dsn)
-	if err != nil {
-		return nil, err
+// validateInput checks for potential SQL injection patterns in the input
+func validateInput(input string) error {
+	if sqlInjectionPattern.MatchString(input) {
+		return ErrInvalidSQLInput
 	}
-	return &postgresClient{pool: pool}, nil
-}
-
-func (pc *postgresClient) Disconnect(ctx context.Context) error {
-	pc.pool.Close()
 	return nil
 }
 
-func (pc *postgresClient) Ping(ctx context.Context) error {
-	return pc.pool.Ping(ctx)
-}
-
-func (pc *postgresClient) Database(name string) Database {
-	return &postgresDatabase{name: name, client: pc}
-}
-
-func (pd *postgresDatabase) Table(tableName string) Table {
-	if !isValidIdentifier(tableName) {
-		log.Fatalf("Invalid table name detected: %s", tableName)
+// validateQueryAndArgs validates the SQL query and its arguments
+func validateQueryAndArgs(query string, args ...interface{}) error {
+	// Validate the base query
+	if err := validateInput(query); err != nil {
+		return err
 	}
-	return &postgresTable{db: pd, table: tableName}
+
+	// Validate string arguments
+	for _, arg := range args {
+		if strArg, ok := arg.(string); ok {
+			if err := validateInput(strArg); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func NewClient(dsn string) (Client, error) {
+	// Validate DSN string
+	if strings.TrimSpace(dsn) == "" {
+		return nil, errors.New("empty database connection string")
+	}
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return &postgresClient{db: db}, nil
+}
+
+func (pc *postgresClient) Connect(ctx context.Context) error {
+	return pc.db.PingContext(ctx)
+}
+
+func (pc *postgresClient) Close() error {
+	return pc.db.Close()
+}
+
+func (pc *postgresClient) Ping(ctx context.Context) error {
+	return pc.db.PingContext(ctx)
+}
+
+func (pc *postgresClient) Database() Database {
+	return &postgresDatabase{db: pc.db}
+}
+
+func (pd *postgresDatabase) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	// Validate query and arguments
+	if err := validateQueryAndArgs(query, args...); err != nil {
+		return nil, err
+	}
+
+	// Prepare statement to ensure proper escaping
+	stmt, err := pd.db.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	return stmt.ExecContext(ctx, args...)
+}
+
+func (pd *postgresDatabase) Query(ctx context.Context, query string, args ...interface{}) (Rows, error) {
+	// Validate query and arguments
+	if err := validateQueryAndArgs(query, args...); err != nil {
+		return nil, err
+	}
+
+	// Prepare statement to ensure proper escaping
+	stmt, err := pd.db.PrepareContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.QueryContext(ctx, args...)
+	if err != nil {
+		return nil, err
+	}
+	return &postgresRows{rows: rows}, nil
+}
+
+func (pd *postgresDatabase) QueryRow(ctx context.Context, query string, args ...interface{}) Row {
+	// Validate query and arguments
+	if err := validateQueryAndArgs(query, args...); err != nil {
+		return &postgresRow{row: pd.db.QueryRowContext(ctx, "SELECT NULL WHERE FALSE")}
+	}
+
+	// Prepare statement to ensure proper escaping
+	stmt, err := pd.db.PrepareContext(ctx, query)
+	if err != nil {
+		return &postgresRow{row: pd.db.QueryRowContext(ctx, "SELECT NULL WHERE FALSE")}
+	}
+	defer stmt.Close()
+
+	return &postgresRow{row: stmt.QueryRowContext(ctx, args...)}
+}
+
+func (pd *postgresDatabase) Begin(ctx context.Context) (Tx, error) {
+	tx, err := pd.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &postgresTx{tx: tx}, nil
 }
 
 func (pd *postgresDatabase) Client() Client {
-	return pd.client
+	return &postgresClient{db: pd.db}
 }
 
-func (pt *postgresTable) FindOne(ctx context.Context, columns []string, condition string, args ...interface{}) SingleResult {
-	cols := "*"
-	if len(columns) > 0 {
-		for _, col := range columns {
-			if !isValidIdentifier(col) {
-				log.Fatalf("Invalid column name detected: %s", col)
-			}
-		}
-		cols = strings.Join(columns, ", ")
-	}
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1", cols, pt.table, condition)
-	if err := validateSQL(query); err != nil {
-		log.Fatalf("Potential SQL Injection detected: %v", err)
-	}
-	row := pt.db.client.pool.QueryRow(ctx, query, args...)
-	return &postgresSingleResult{row: row}
+func (pr *postgresRow) Scan(dest ...interface{}) error {
+	return pr.row.Scan(dest...)
 }
 
-func (pt *postgresTable) FindMany(ctx context.Context, columns []string, condition string, args ...interface{}) (Cursor, error) {
-	cols := "*"
-	if len(columns) > 0 {
-		for _, col := range columns {
-			if !isValidIdentifier(col) {
-				return nil, fmt.Errorf("Invalid column name detected: %s", col)
-			}
-		}
-		cols = strings.Join(columns, ", ")
-	}
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s", cols, pt.table, condition)
-	if err := validateSQL(query); err != nil {
-		return nil, err
-	}
-	rows, err := pt.db.client.pool.Query(ctx, query, args...)
+func (pr *postgresRows) Close() error {
+	return pr.rows.Close()
+}
+
+func (pr *postgresRows) Next() bool {
+	return pr.rows.Next()
+}
+
+func (pr *postgresRows) Scan(dest ...interface{}) error {
+	return pr.rows.Scan(dest...)
+}
+
+func (pt *postgresTx) Commit() error {
+	return pt.tx.Commit()
+}
+
+func (pt *postgresTx) Rollback() error {
+	return pt.tx.Rollback()
+}
+
+func (pt *postgresTx) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	return pt.tx.ExecContext(ctx, query, args...)
+}
+
+func (pt *postgresTx) Query(ctx context.Context, query string, args ...interface{}) (Rows, error) {
+	rows, err := pt.tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
-	return &postgresCursor{rows: rows}, nil
+	return &postgresRows{rows: rows}, nil
 }
 
-func (pt *postgresTable) InsertOne(ctx context.Context, data map[string]interface{}) error {
-	columns := []string{}
-	placeholders := []string{}
-	values := []interface{}{}
-	for col, val := range data {
-		if !isValidIdentifier(col) {
-			return errors.New("invalid column name detected")
-		}
-		columns = append(columns, col)
-		placeholders = append(placeholders, fmt.Sprintf("$%d", len(values)+1))
-		values = append(values, val)
-	}
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", pt.table, strings.Join(columns, ", "), strings.Join(placeholders, ", "))
-	if err := validateSQL(query); err != nil {
-		return err
-	}
-	_, err := pt.db.client.pool.Exec(ctx, query, values...)
-	return err
-}
-
-func (pt *postgresTable) InsertMany(ctx context.Context, data []map[string]interface{}) error {
-	tx, err := pt.db.client.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	for _, row := range data {
-		err = pt.InsertOne(ctx, row)
-		if err != nil {
-			tx.Rollback(ctx)
-			return err
-		}
-	}
-	return tx.Commit(ctx)
-}
-
-func (pt *postgresTable) UpdateOne(ctx context.Context, conditions map[string]interface{}, updates map[string]interface{}) error {
-	setClauses := []string{}
-	values := []interface{}{}
-	for col, val := range updates {
-		if !isValidIdentifier(col) {
-			return errors.New("invalid column name in update")
-		}
-		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col, len(values)+1))
-		values = append(values, val)
-	}
-
-	condClauses := []string{}
-	for col, val := range conditions {
-		if !isValidIdentifier(col) {
-			return errors.New("invalid column name in condition")
-		}
-		condClauses = append(condClauses, fmt.Sprintf("%s = $%d", col, len(values)+1))
-		values = append(values, val)
-	}
-
-	query := fmt.Sprintf("UPDATE %s SET %s WHERE %s", pt.table, strings.Join(setClauses, ", "), strings.Join(condClauses, " AND "))
-	if err := validateSQL(query); err != nil {
-		return err
-	}
-	_, err := pt.db.client.pool.Exec(ctx, query, values...)
-	return err
-}
-
-func (pt *postgresTable) DeleteOne(ctx context.Context, conditions map[string]interface{}) error {
-	condClauses := []string{}
-	values := []interface{}{}
-	for col, val := range conditions {
-		if !isValidIdentifier(col) {
-			return errors.New("invalid column name in delete condition")
-		}
-		condClauses = append(condClauses, fmt.Sprintf("%s = $%d", col, len(values)+1))
-		values = append(values, val)
-	}
-	query := fmt.Sprintf("DELETE FROM %s WHERE %s", pt.table, strings.Join(condClauses, " AND "))
-	if err := validateSQL(query); err != nil {
-		return err
-	}
-	_, err := pt.db.client.pool.Exec(ctx, query, values...)
-	return err
-}
-
-func (psr *postgresSingleResult) Scan(dest ...interface{}) error {
-	return psr.row.Scan(dest...)
-}
-
-func (pc *postgresCursor) Scan(dest ...interface{}) error {
-	return pc.rows.Scan(dest...)
-}
-
-// Helper to validate SQL using sqlparser
-func validateSQL(query string) error {
-	_, err := sqlparser.Parse(query)
-	return err
-}
-
-// isValidIdentifier checks table/column names to prevent injection
-func isValidIdentifier(name string) bool {
-	re := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	return re.MatchString(name)
+func (pt *postgresTx) QueryRow(ctx context.Context, query string, args ...interface{}) Row {
+	row := pt.tx.QueryRowContext(ctx, query, args...)
+	return &postgresRow{row: row}
 }

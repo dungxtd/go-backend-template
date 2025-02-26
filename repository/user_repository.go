@@ -4,69 +4,61 @@ import (
 	"context"
 
 	"github.com/sportgo-app/sportgo-go/domain"
-	"github.com/sportgo-app/sportgo-go/mongo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"github.com/sportgo-app/sportgo-go/postgres"
 )
 
 type userRepository struct {
-	database   mongo.Database
-	collection string
+	db    postgres.Database
+	table string
 }
 
-func NewUserRepository(db mongo.Database, collection string) domain.UserRepository {
+func NewUserRepository(db postgres.Database, table string) domain.UserRepository {
 	return &userRepository{
-		database:   db,
-		collection: collection,
+		db:    db,
+		table: table,
 	}
 }
 
 func (ur *userRepository) Create(c context.Context, user *domain.User) error {
-	collection := ur.database.Collection(ur.collection)
-
-	_, err := collection.InsertOne(c, user)
-
+	query := `INSERT INTO ` + ur.table + ` (id, name, email, password) VALUES ($1, $2, $3, $4)`
+	_, err := ur.db.Exec(c, query, user.ID, user.Name, user.Email, user.Password)
 	return err
 }
 
 func (ur *userRepository) Fetch(c context.Context) ([]domain.User, error) {
-	collection := ur.database.Collection(ur.collection)
-
-	opts := options.Find().SetProjection(bson.D{{Key: "password", Value: 0}})
-	cursor, err := collection.Find(c, bson.D{}, opts)
-
+	query := `SELECT id, name, email FROM ` + ur.table
+	rows, err := ur.db.Query(c, query)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
 	var users []domain.User
-
-	err = cursor.All(c, &users)
-	if users == nil {
-		return []domain.User{}, err
+	for rows.Next() {
+		var user domain.User
+		err = rows.Scan(&user.ID, &user.Name, &user.Email)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
 	}
 
-	return users, err
+	if users == nil {
+		return []domain.User{}, nil
+	}
+	return users, nil
 }
 
 func (ur *userRepository) GetByEmail(c context.Context, email string) (domain.User, error) {
-	collection := ur.database.Collection(ur.collection)
+	query := `SELECT id, name, email, password FROM ` + ur.table + ` WHERE email = $1`
 	var user domain.User
-	err := collection.FindOne(c, bson.M{"email": email}).Decode(&user)
+	err := ur.db.QueryRow(c, query).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	return user, err
 }
 
 func (ur *userRepository) GetByID(c context.Context, id string) (domain.User, error) {
-	collection := ur.database.Collection(ur.collection)
-
+	query := `SELECT id, name, email, password FROM ` + ur.table + ` WHERE id = $1`
 	var user domain.User
-
-	idHex, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return user, err
-	}
-
-	err = collection.FindOne(c, bson.M{"_id": idHex}).Decode(&user)
+	err := ur.db.QueryRow(c, query).Scan(&user.ID, &user.Name, &user.Email, &user.Password)
 	return user, err
 }
