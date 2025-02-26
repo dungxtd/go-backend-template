@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/sportgo-app/sportgo-go/bootstrap"
@@ -30,10 +30,10 @@ func (sc *SignupController) Signup(c *gin.Context) {
 	}
 
 	_, err = sc.SignupUsecase.GetUserByEmail(c, request.Email)
-	// if err == nil {
-	// 	c.JSON(http.StatusConflict, domain.ErrorResponse{Message: "User already exists with the given email"})
-	// 	return
-	// }
+	if err == nil {
+		c.JSON(http.StatusConflict, domain.ErrorResponse{Message: "User already exists with the given email"})
+		return
+	}
 
 	encryptedPassword, err := bcrypt.GenerateFromPassword(
 		[]byte(request.Password),
@@ -47,7 +47,7 @@ func (sc *SignupController) Signup(c *gin.Context) {
 	request.Password = string(encryptedPassword)
 
 	user := domain.User{
-		ID:       primitive.NewObjectID(),
+		ID:       uuid.New().String(),
 		Name:     request.Name,
 		Email:    request.Email,
 		Password: request.Password,
