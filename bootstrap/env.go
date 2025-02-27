@@ -57,16 +57,19 @@ type Env struct {
 	MinioUseSSL      bool   `mapstructure:"MINIO_USE_SSL"`
 }
 
-func NewEnv() *Env {
-	env := Env{}
+func LoadConfig() {
 	viper.SetConfigFile(".env")
 
 	err := viper.ReadInConfig()
 	if err != nil {
 		log.Fatal("Can't find the file .env : ", err)
 	}
+}
 
-	err = viper.Unmarshal(&env)
+func NewEnv() *Env {
+	env := Env{}
+
+	err := viper.Unmarshal(&env)
 	if err != nil {
 		log.Fatal("Environment can't be loaded: ", err)
 	}
