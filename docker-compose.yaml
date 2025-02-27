@@ -1,12 +1,12 @@
 services:
-  sportgo-go:
+  app:
     build:
       context: .
       dockerfile: Dockerfile
     image: app
     container_name: app
     restart: unless-stopped
-    env_file: .env
+    env_file: .env.example
     ports:
       - "$PORT:$PORT"
     depends_on:

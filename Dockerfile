@@ -20,7 +20,8 @@ COPY --from=builder /src/main .
 COPY templates templates
 # Copy frontend
 # COPY public public
+COPY .env.example .env
 # Expose port
 EXPOSE 8080
 # Set the binary as the entrypoint of the container
-CMD ["./main"]
+CMD ["./main", "serve"]
