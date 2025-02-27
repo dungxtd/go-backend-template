@@ -14,7 +14,7 @@ import (
 )
 
 func NewRefreshTokenRouter(env *bootstrap.Env, timeout time.Duration, db postgres.Database, group *gin.RouterGroup) {
-	ur := repository.NewUserRepository(db, domain.CollectionUser)
+	ur := repository.NewUserRepository(db, domain.UserTable)
 	rtc := &controller.RefreshTokenController{
 		RefreshTokenUsecase: usecase.NewRefreshTokenUsecase(ur, timeout),
 		Env:                 env,

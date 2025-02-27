@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	CollectionUser = "users"
+	UserTable = "users"
 )
 
 type User struct {

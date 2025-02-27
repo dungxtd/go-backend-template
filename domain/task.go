@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	CollectionTask = "tasks"
+	TaskTable = "tasks"
 )
 
 type Task struct {
