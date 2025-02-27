@@ -20,29 +20,16 @@ func NewTaskRepository(db postgres.Database, table string) domain.TaskRepository
 }
 
 func (tr *taskRepository) Create(c context.Context, task *domain.Task) error {
-	query := `INSERT INTO ` + tr.table + ` (id, title, user_id) VALUES ($1, $2, $3)`
-	_, err := tr.db.Exec(c, query, task.ID, task.Title, task.UserID)
+	_, err := tr.db.NewInsert().Model(task).Exec(c)
 	return err
 }
 
 func (tr *taskRepository) FetchByUserID(c context.Context, userID string) ([]domain.Task, error) {
-	query := `SELECT id, title, user_id FROM ` + tr.table + ` WHERE user_id = $1`
-	rows, err := tr.db.Query(c, query, userID)
+	var tasks []domain.Task
+	err := tr.db.NewSelect().Model(&tasks).Where("user_id = ?", userID).Scan(c)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
-
-	var tasks []domain.Task
-	for rows.Next() {
-		var task domain.Task
-		err = rows.Scan(&task.ID, &task.Title, &task.UserID)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
-	}
-
 	if tasks == nil {
 		return []domain.Task{}, nil
 	}

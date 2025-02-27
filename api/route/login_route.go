@@ -14,7 +14,7 @@ import (
 )
 
 func NewLoginRouter(env *bootstrap.Env, timeout time.Duration, db postgres.Database, group *gin.RouterGroup) {
-	ur := repository.NewUserRepository(db, domain.CollectionUser)
+	ur := repository.NewUserRepository(db, domain.UserTable)
 	lc := &controller.LoginController{
 		LoginUsecase: usecase.NewLoginUsecase(ur, timeout),
 		Env:          env,

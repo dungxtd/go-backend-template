@@ -14,7 +14,7 @@ import (
 )
 
 func NewTaskRouter(env *bootstrap.Env, timeout time.Duration, db postgres.Database, group *gin.RouterGroup) {
-	tr := repository.NewTaskRepository(db, domain.CollectionTask)
+	tr := repository.NewTaskRepository(db, domain.TaskTable)
 	tc := &controller.TaskController{
 		TaskUsecase: usecase.NewTaskUsecase(tr, timeout),
 	}

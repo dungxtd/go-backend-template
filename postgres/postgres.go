@@ -7,7 +7,10 @@ import (
 	"regexp"
 	"strings"
 
-	_ "github.com/lib/pq"
+	"github.com/uptrace/bun"
+	"github.com/uptrace/bun/dialect/pgdialect"
+	"github.com/uptrace/bun/driver/pgdriver"
+	"github.com/uptrace/bun/migrate"
 )
 
 var (
@@ -22,6 +25,14 @@ type Database interface {
 	QueryRow(context.Context, string, ...interface{}) Row
 	Begin(context.Context) (Tx, error)
 	Client() Client
+	NewSelect() *bun.SelectQuery
+	NewInsert() *bun.InsertQuery
+	NewUpdate() *bun.UpdateQuery
+	NewDelete() *bun.DeleteQuery
+	BatchInsert(context.Context, []interface{}) error
+	BatchUpdate(context.Context, []interface{}) error
+	//BatchDelete(context.Context, []interface{}) error
+	NewMigrator(migrations *migrate.Migrations) *migrate.Migrator
 }
 
 type Row interface {
@@ -50,11 +61,11 @@ type Client interface {
 }
 
 type postgresClient struct {
-	db *sql.DB
+	db *bun.DB
 }
 
 type postgresDatabase struct {
-	db *sql.DB
+	db *bun.DB
 }
 
 type postgresRow struct {
@@ -66,7 +77,7 @@ type postgresRows struct {
 }
 
 type postgresTx struct {
-	tx *sql.Tx
+	tx bun.Tx
 }
 
 // validateInput checks for potential SQL injection patterns in the input
@@ -102,10 +113,8 @@ func NewClient(dsn string) (Client, error) {
 		return nil, errors.New("empty database connection string")
 	}
 
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		return nil, err
-	}
+	sqldb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(dsn)))
+	db := bun.NewDB(sqldb, pgdialect.New())
 
 	// Test the connection
 	if err := db.Ping(); err != nil {
@@ -138,14 +147,7 @@ func (pd *postgresDatabase) Exec(ctx context.Context, query string, args ...inte
 		return nil, err
 	}
 
-	// Prepare statement to ensure proper escaping
-	stmt, err := pd.db.PrepareContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	return stmt.ExecContext(ctx, args...)
+	return pd.db.ExecContext(ctx, query, args...)
 }
 
 func (pd *postgresDatabase) Query(ctx context.Context, query string, args ...interface{}) (Rows, error) {
@@ -154,14 +156,7 @@ func (pd *postgresDatabase) Query(ctx context.Context, query string, args ...int
 		return nil, err
 	}
 
-	// Prepare statement to ensure proper escaping
-	stmt, err := pd.db.PrepareContext(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	defer stmt.Close()
-
-	rows, err := stmt.QueryContext(ctx, args...)
+	rows, err := pd.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -174,14 +169,7 @@ func (pd *postgresDatabase) QueryRow(ctx context.Context, query string, args ...
 		return &postgresRow{row: pd.db.QueryRowContext(ctx, "SELECT NULL WHERE FALSE")}
 	}
 
-	// Prepare statement to ensure proper escaping
-	stmt, err := pd.db.PrepareContext(ctx, query)
-	if err != nil {
-		return &postgresRow{row: pd.db.QueryRowContext(ctx, "SELECT NULL WHERE FALSE")}
-	}
-	defer stmt.Close()
-
-	return &postgresRow{row: stmt.QueryRowContext(ctx, args...)}
+	return &postgresRow{row: pd.db.QueryRowContext(ctx, query, args...)}
 }
 
 func (pd *postgresDatabase) Begin(ctx context.Context) (Tx, error) {
@@ -190,6 +178,22 @@ func (pd *postgresDatabase) Begin(ctx context.Context) (Tx, error) {
 		return nil, err
 	}
 	return &postgresTx{tx: tx}, nil
+}
+
+func (pd *postgresDatabase) NewSelect() *bun.SelectQuery {
+	return pd.db.NewSelect()
+}
+
+func (pd *postgresDatabase) NewInsert() *bun.InsertQuery {
+	return pd.db.NewInsert()
+}
+
+func (pd *postgresDatabase) NewUpdate() *bun.UpdateQuery {
+	return pd.db.NewUpdate()
+}
+
+func (pd *postgresDatabase) NewDelete() *bun.DeleteQuery {
+	return pd.db.NewDelete()
 }
 
 func (pd *postgresDatabase) Client() Client {
@@ -221,10 +225,18 @@ func (pt *postgresTx) Rollback() error {
 }
 
 func (pt *postgresTx) Exec(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	// Validate query and arguments
+	if err := validateQueryAndArgs(query, args...); err != nil {
+		return nil, err
+	}
 	return pt.tx.ExecContext(ctx, query, args...)
 }
 
 func (pt *postgresTx) Query(ctx context.Context, query string, args ...interface{}) (Rows, error) {
+	// Validate query and arguments
+	if err := validateQueryAndArgs(query, args...); err != nil {
+		return nil, err
+	}
 	rows, err := pt.tx.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
@@ -233,6 +245,28 @@ func (pt *postgresTx) Query(ctx context.Context, query string, args ...interface
 }
 
 func (pt *postgresTx) QueryRow(ctx context.Context, query string, args ...interface{}) Row {
+	// Validate query and arguments
+	if err := validateQueryAndArgs(query, args...); err != nil {
+		return &postgresRow{row: pt.tx.QueryRowContext(ctx, "SELECT NULL WHERE FALSE")}
+	}
 	row := pt.tx.QueryRowContext(ctx, query, args...)
 	return &postgresRow{row: row}
 }
+func (pd *postgresDatabase) BatchInsert(ctx context.Context, models []interface{}) error {
+	_, err := pd.db.NewInsert().Model(&models).Exec(ctx)
+	return err
+}
+
+func (pd *postgresDatabase) BatchUpdate(ctx context.Context, models []interface{}) error {
+	_, err := pd.db.NewUpdate().Model(&models).Bulk().Exec(ctx)
+	return err
+}
+
+func (pd *postgresDatabase) NewMigrator(migrations *migrate.Migrations) *migrate.Migrator {
+	return migrate.NewMigrator(pd.db, migrations)
+}
+
+//func (pd *postgresDatabase) BatchDelete(ctx context.Context, models []interface{}) error {
+//	_, err := pd.db.NewDelete().Model(&models).Bulk().Exec(ctx)
+//	return err
+//}

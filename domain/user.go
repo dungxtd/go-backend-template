@@ -2,17 +2,19 @@ package domain
 
 import (
 	"context"
+	"github.com/uptrace/bun"
 )
 
 const (
-	CollectionUser = "users"
+	UserTable = "users"
 )
 
 type User struct {
-	ID       string `json:"id" db:"id"`
-	Name     string `json:"name" db:"name"`
-	Email    string `json:"email" db:"email"`
-	Password string `json:"-" db:"password"`
+	ID            string `json:"id" bun:"id,pk"`
+	Name          string `json:"name" bun:"name"`
+	Email         string `json:"email" bun:"email"`
+	Password      string `json:"-" bun:"password"`
+	bun.BaseModel `bun:"table:users,alias:u"`
 }
 
 type UserRepository interface {

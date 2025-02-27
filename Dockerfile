@@ -1,25 +1,26 @@
-FROM golang:1.23.3-alpine as build
+FROM golang AS builder
 
-WORKDIR /app
-
-# Copy the Go module files
-COPY go.mod .
-COPY go.sum .
-
-# Download the Go module dependencies
+WORKDIR /src
+# Download dependencies
+COPY go.mod go.sum /
 RUN go mod download
 
+# Add source code
 COPY . .
+RUN CGO_ENABLED=0 go build -o main .
 
-RUN go build -o /main ./
-
-FROM alpine:latest as run
-
-# Copy the application executable from the build image
-COPY --from=build /main /main
-COPY --from=build /app/.env /app/.env
-COPY --from=build /app/templates /app/templates
+# Multi-Stage production build
+FROM alpine AS production
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
+# Retrieve the binary from the previous stage
+COPY --from=builder /src/main .
+# Copy static template files
+COPY templates templates
+# Copy frontend
+# COPY public public
+# Expose port
 EXPOSE 8080
-CMD ["/main"]
+# Set the binary as the entrypoint of the container
+CMD ["./main"]
