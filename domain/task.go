@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"github.com/uptrace/bun"
 )
 
 const (
@@ -9,9 +10,10 @@ const (
 )
 
 type Task struct {
-	ID     string `json:"-" db:"id"`
-	Title  string `form:"title" binding:"required" json:"title" db:"title"`
-	UserID string `json:"-" db:"user_id"`
+	ID            string `json:"-" bun:"id,pk"`
+	Title         string `form:"title" binding:"required" json:"title" bun:"title"`
+	UserID        string `json:"-" bun:"user_id"`
+	bun.BaseModel `bun:"table:tasks,alias:t"`
 }
 
 type TaskRepository interface {

@@ -17,15 +17,30 @@ type Application struct {
 	Storage    storage.MinioClient
 }
 
+// NewDatabase initializes database connections
+func NewDatabase(env *Env) (postgres.Client, mongo.Client, error) {
+	postgresDB := NewPostgresDatabase(env)
+	mongoDB := NewMongoDatabase(env)
+	return postgresDB, mongoDB, nil
+}
+
 func App() Application {
 	app := &Application{}
 	app.Env = NewEnv()
-	app.Postgres = NewPostgresDatabase(app.Env)
-	app.Mongo = NewMongoDatabase(app.Env)
+
+	// Initialize databases
+	postgresDB, mongoDB, err := NewDatabase(app.Env)
+	if err != nil {
+		panic(err)
+	}
+	app.Postgres = postgresDB
+	app.Mongo = mongoDB
+
+	// Initialize services
 	app.Mailer = NewSMTPMailer(app.Env)
-	// app.UnimtxClient = NewUnimtxClient(app.Env)
 	app.SmsAdapter = NewSmsSpeedAdapter(app.Env)
-	//app.Storage = NewStorage(app.Env)
+	// app.Storage = NewStorage(app.Env)
+
 	return *app
 }
 
