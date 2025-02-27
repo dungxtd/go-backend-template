@@ -13,13 +13,13 @@ import (
 )
 
 func Setup(env *bootstrap.Env, timeout time.Duration, db postgres.Database, mailer email.MailClient, smsAdapter sms.SmsAdapter, gin *gin.Engine) {
-	publicRouter := gin.Group("")
+	publicRouter := gin.Group("/api/v1")
 	// All Public APIs
 	NewSignupRouter(env, timeout, db, mailer, smsAdapter, publicRouter)
 	NewLoginRouter(env, timeout, db, publicRouter)
 	NewRefreshTokenRouter(env, timeout, db, publicRouter)
 
-	protectedRouter := gin.Group("")
+	protectedRouter := gin.Group("/api/v1")
 	// Middleware to verify AccessToken
 	protectedRouter.Use(middleware.JwtAuthMiddleware(env.AccessTokenSecret))
 	// All Private APIs
