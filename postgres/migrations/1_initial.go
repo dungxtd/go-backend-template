@@ -15,6 +15,7 @@ updated_at timestamp with time zone DEFAULT current_timestamp,
 name text NOT NULL,
 email text NOT NULL UNIQUE,
 password text NOT NULL,
+phone_number text,
 PRIMARY KEY (id)
 )`
 

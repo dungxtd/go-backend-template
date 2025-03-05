@@ -10,6 +10,12 @@ type SignupRequest struct {
 	Password string `form:"password" binding:"required"`
 }
 
+type SignupPhoneRequest struct {
+	Name        string `form:"name" binding:"required"`
+	PhoneNumber string `form:"phone_number" binding:"required"`
+	Password    string `form:"password" binding:"required"`
+}
+
 type SignupResponse struct {
 	AccessToken  string `json:"accessToken"`
 	RefreshToken string `json:"refreshToken"`
@@ -18,6 +24,7 @@ type SignupResponse struct {
 type SignupUsecase interface {
 	Create(c context.Context, user *User) error
 	GetUserByEmail(c context.Context, email string) (User, error)
+	GetUserByPhone(c context.Context, phoneNumber string) (User, error)
 	CreateAccessToken(user *User, secret string, expiry int) (accessToken string, err error)
 	CreateRefreshToken(user *User, secret string, expiry int) (refreshToken string, err error)
 }

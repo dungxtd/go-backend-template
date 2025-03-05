@@ -1,6 +1,6 @@
-INSERT INTO users (id, name, email, password) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'John Doe', 'john@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy'),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Jane Smith', 'jane@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy');
+INSERT INTO users (id, name, email, password, phone_number) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'John Doe', 'john@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1234567890'),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Jane Smith', 'jane@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1987654321');
 
 INSERT INTO tasks (id, title, user_id) VALUES
 ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Complete project documentation', 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'),

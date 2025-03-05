@@ -32,6 +32,12 @@ func (su *signupUsecase) GetUserByEmail(c context.Context, email string) (domain
 	return su.userRepository.GetByEmail(ctx, email)
 }
 
+func (su *signupUsecase) GetUserByPhone(c context.Context, phoneNumber string) (domain.User, error) {
+	ctx, cancel := context.WithTimeout(c, su.contextTimeout)
+	defer cancel()
+	return su.userRepository.GetByPhone(ctx, phoneNumber)
+}
+
 func (su *signupUsecase) CreateAccessToken(user *domain.User, secret string, expiry int) (accessToken string, err error) {
 	return tokenutil.CreateAccessToken(user, secret, expiry)
 }
