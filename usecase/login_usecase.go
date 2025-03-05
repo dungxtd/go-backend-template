@@ -26,6 +26,12 @@ func (lu *loginUsecase) GetUserByEmail(c context.Context, email string) (domain.
 	return lu.userRepository.GetByEmail(ctx, email)
 }
 
+func (lu *loginUsecase) GetUserByPhone(c context.Context, phoneNumber string) (domain.User, error) {
+	ctx, cancel := context.WithTimeout(c, lu.contextTimeout)
+	defer cancel()
+	return lu.userRepository.GetByPhone(ctx, phoneNumber)
+}
+
 func (lu *loginUsecase) CreateAccessToken(user *domain.User, secret string, expiry int) (accessToken string, err error) {
 	return tokenutil.CreateAccessToken(user, secret, expiry)
 }

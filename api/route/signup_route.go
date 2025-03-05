@@ -23,5 +23,6 @@ func NewSignupRouter(env *bootstrap.Env, timeout time.Duration, db postgres.Data
 		Mailer:        mailer,
 		SmsAdapter:    smsAdapter,
 	}
-	group.POST("/signup", sc.Signup)
+	group.POST("/signup/email", sc.SignupWithEmail)
+	group.POST("/signup/phone", sc.SignupWithPhone)
 }

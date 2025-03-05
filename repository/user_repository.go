@@ -47,3 +47,9 @@ func (ur *userRepository) GetByID(c context.Context, id string) (domain.User, er
 	err := ur.db.NewSelect().Model(&user).Where("id = ?", id).Scan(c)
 	return user, err
 }
+
+func (ur *userRepository) GetByPhone(c context.Context, phoneNumber string) (domain.User, error) {
+	var user domain.User
+	err := ur.db.NewSelect().Model(&user).Where("phone_number = ?", phoneNumber).Scan(c)
+	return user, err
+}
