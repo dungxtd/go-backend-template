@@ -19,6 +19,8 @@ func NewLoginRouter(env *bootstrap.Env, timeout time.Duration, db postgres.Datab
 		LoginUsecase: usecase.NewLoginUsecase(ur, timeout),
 		Env:          env,
 	}
+
 	group.POST("/login/email", lc.LoginWithEmail)
 	group.POST("/login/phone", lc.LoginWithPhone)
+	group.GET("/check", lc.CheckUserExists)
 }

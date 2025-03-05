@@ -15,6 +15,32 @@ type LoginController struct {
 	Env          *bootstrap.Env
 }
 
+func (lc *LoginController) CheckUserExists(c *gin.Context) {
+	var request domain.UserCheckRequest
+
+	err := c.ShouldBind(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	if request.Email == "" && request.PhoneNumber == "" {
+		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: "Either email or phone number must be provided"})
+		return
+	}
+
+	var exists bool
+	if request.Email != "" {
+		_, err = lc.LoginUsecase.GetUserByEmail(c, request.Email)
+		exists = err == nil
+	} else {
+		_, err = lc.LoginUsecase.GetUserByPhone(c, request.PhoneNumber)
+		exists = err == nil
+	}
+
+	c.JSON(http.StatusOK, domain.UserCheckResponse{Exists: exists})
+}
+
 func (lc *LoginController) LoginWithEmail(c *gin.Context) {
 	var request domain.LoginRequest
 
