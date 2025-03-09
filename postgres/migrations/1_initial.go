@@ -13,9 +13,9 @@ id uuid NOT NULL,
 created_at timestamp with time zone NOT NULL DEFAULT current_timestamp,
 updated_at timestamp with time zone DEFAULT current_timestamp,
 name text NOT NULL,
-email text NOT NULL UNIQUE,
+email text UNIQUE,
 password text NOT NULL,
-phone_number text,
+phone_number text UNIQUE,
 PRIMARY KEY (id)
 )`
 
