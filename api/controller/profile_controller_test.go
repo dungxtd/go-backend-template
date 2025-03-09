@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/sportgo-app/sportgo-go/api/controller"
-	"github.com/sportgo-app/sportgo-go/domain"
-	"github.com/sportgo-app/sportgo-go/domain/mocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/sportgo-app/sportgo-go/api/controller"
+	"github.com/sportgo-app/sportgo-go/domain"
+	"github.com/sportgo-app/sportgo-go/domain/mocks"
 )
 
 func setUserID(userID string) gin.HandlerFunc {

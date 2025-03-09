@@ -4,7 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/sportgo-app/sportgo-go/domain"
+	"github.com/sportgo-app/sportgo-go/internal/resutil"
 )
 
 type ProfileController struct {
@@ -16,9 +18,9 @@ func (pc *ProfileController) Fetch(c *gin.Context) {
 
 	profile, err := pc.ProfileUsecase.GetProfileByID(c, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, profile)
+	resutil.HandleDataResponse(c, http.StatusOK, profile)
 }

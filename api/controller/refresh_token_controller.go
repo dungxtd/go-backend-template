@@ -4,8 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+
 	"github.com/sportgo-app/sportgo-go/bootstrap"
 	"github.com/sportgo-app/sportgo-go/domain"
+	"github.com/sportgo-app/sportgo-go/internal/resutil"
 )
 
 type RefreshTokenController struct {
@@ -18,31 +20,31 @@ func (rtc *RefreshTokenController) RefreshToken(c *gin.Context) {
 
 	err := c.ShouldBind(&request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	id, err := rtc.RefreshTokenUsecase.ExtractIDFromToken(request.RefreshToken, rtc.Env.RefreshTokenSecret)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{Message: "User not found"})
+		resutil.HandleErrorResponse(c, http.StatusUnauthorized, err, "User not found")
 		return
 	}
 
 	user, err := rtc.RefreshTokenUsecase.GetUserByID(c, id)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{Message: "User not found"})
+		resutil.HandleErrorResponse(c, http.StatusUnauthorized, err, "User not found")
 		return
 	}
 
 	accessToken, err := rtc.RefreshTokenUsecase.CreateAccessToken(&user, rtc.Env.AccessTokenSecret, rtc.Env.AccessTokenExpiryHour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	refreshToken, err := rtc.RefreshTokenUsecase.CreateRefreshToken(&user, rtc.Env.RefreshTokenSecret, rtc.Env.RefreshTokenExpiryHour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -51,5 +53,5 @@ func (rtc *RefreshTokenController) RefreshToken(c *gin.Context) {
 		RefreshToken: refreshToken,
 	}
 
-	c.JSON(http.StatusOK, refreshTokenResponse)
+	resutil.HandleDataResponse(c, http.StatusOK, refreshTokenResponse)
 }

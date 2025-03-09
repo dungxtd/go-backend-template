@@ -10,6 +10,7 @@ import (
 	"github.com/sportgo-app/sportgo-go/bootstrap"
 	"github.com/sportgo-app/sportgo-go/domain"
 	"github.com/sportgo-app/sportgo-go/email"
+	"github.com/sportgo-app/sportgo-go/internal/resutil"
 	"github.com/sportgo-app/sportgo-go/sms"
 )
 
@@ -26,13 +27,13 @@ func (sc *SignupController) SignupWithEmail(c *gin.Context) {
 
 	err := c.ShouldBind(&request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	_, err = sc.SignupUsecase.GetUserByEmail(c, request.Email)
 	if err == nil {
-		c.JSON(http.StatusConflict, domain.ErrorResponse{Message: "User already exists with the given email"})
+		resutil.HandleErrorResponse(c, http.StatusConflict, nil, "User already exists with the given email")
 		return
 	}
 
@@ -41,7 +42,7 @@ func (sc *SignupController) SignupWithEmail(c *gin.Context) {
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -56,19 +57,19 @@ func (sc *SignupController) SignupWithEmail(c *gin.Context) {
 
 	err = sc.SignupUsecase.Create(c, &user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	accessToken, err := sc.SignupUsecase.CreateAccessToken(&user, sc.Env.AccessTokenSecret, sc.Env.AccessTokenExpiryHour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	refreshToken, err := sc.SignupUsecase.CreateRefreshToken(&user, sc.Env.RefreshTokenSecret, sc.Env.RefreshTokenExpiryHour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -92,7 +93,7 @@ func (sc *SignupController) SignupWithEmail(c *gin.Context) {
 	//	}
 	//}()
 
-	c.JSON(http.StatusOK, signupResponse)
+	resutil.HandleDataResponse(c, http.StatusOK, signupResponse)
 }
 
 func (sc *SignupController) SignupWithPhone(c *gin.Context) {
@@ -100,13 +101,13 @@ func (sc *SignupController) SignupWithPhone(c *gin.Context) {
 
 	err := c.ShouldBind(&request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	_, err = sc.SignupUsecase.GetUserByPhone(c, request.PhoneNumber)
 	if err == nil {
-		c.JSON(http.StatusConflict, domain.ErrorResponse{Message: "User already exists with the given phone number"})
+		resutil.HandleErrorResponse(c, http.StatusConflict, nil, "User already exists with the given phone number")
 		return
 	}
 
@@ -115,7 +116,7 @@ func (sc *SignupController) SignupWithPhone(c *gin.Context) {
 		bcrypt.DefaultCost,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -128,19 +129,19 @@ func (sc *SignupController) SignupWithPhone(c *gin.Context) {
 
 	err = sc.SignupUsecase.Create(c, &user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	accessToken, err := sc.SignupUsecase.CreateAccessToken(&user, sc.Env.AccessTokenSecret, sc.Env.AccessTokenExpiryHour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	refreshToken, err := sc.SignupUsecase.CreateRefreshToken(&user, sc.Env.RefreshTokenSecret, sc.Env.RefreshTokenExpiryHour)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -149,5 +150,5 @@ func (sc *SignupController) SignupWithPhone(c *gin.Context) {
 		RefreshToken: refreshToken,
 	}
 
-	c.JSON(http.StatusOK, signupResponse)
+	resutil.HandleDataResponse(c, http.StatusOK, signupResponse)
 }

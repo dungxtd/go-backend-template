@@ -29,6 +29,11 @@ type Env struct {
 	AccessTokenSecret      string `mapstructure:"ACCESS_TOKEN_SECRET"`
 	RefreshTokenSecret     string `mapstructure:"REFRESH_TOKEN_SECRET"`
 
+	//Social Auth
+	GoogleUserInfoURL   string `mapstructure:"GOOGLE_USER_INFO_URL"`
+	FacebookUserInfoURL string `mapstructure:"FACEBOOK_USER_INFO_URL"`
+	AppleUserInfoURL    string `mapstructure:"APPLE_USER_INFO_URL"`
+
 	//SMTP email
 	EmailSMTPHost          string `mapstructure:"EMAIL_SMTP_HOST"`
 	EmailSMTPPort          int    `mapstructure:"EMAIL_SMTP_PORT"`

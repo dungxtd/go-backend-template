@@ -46,6 +46,12 @@ func (ur *userRepository) GetByEmail(c context.Context, email string) (domain.Us
 	return user, err
 }
 
+func (ur *userRepository) Update(c context.Context, user *domain.User) error {
+	user.UpdatedAt = time.Now()
+	_, err := ur.db.NewUpdate().Model(user).WherePK().Exec(c)
+	return err
+}
+
 func (ur *userRepository) GetByID(c context.Context, id string) (domain.User, error) {
 	var user domain.User
 	err := ur.db.NewSelect().Model(&user).Where("id = ?", id).Scan(c)

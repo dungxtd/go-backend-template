@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/sportgo-app/sportgo-go/domain"
+	"github.com/sportgo-app/sportgo-go/internal/resutil"
 )
 
 type TaskController struct {
@@ -18,7 +19,7 @@ func (tc *TaskController) Create(c *gin.Context) {
 
 	err := c.ShouldBind(&task)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
@@ -29,19 +30,17 @@ func (tc *TaskController) Create(c *gin.Context) {
 	// Convert string userID to UUID
 	task.UserID = userID
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	err = tc.TaskUsecase.Create(c, &task)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, domain.SuccessResponse{
-		Message: "Task created successfully",
-	})
+	resutil.HandleSuccessResponse(c, http.StatusOK, "Task created successfully")
 }
 
 func (u *TaskController) Fetch(c *gin.Context) {
@@ -49,9 +48,9 @@ func (u *TaskController) Fetch(c *gin.Context) {
 
 	tasks, err := u.TaskUsecase.FetchByUserID(c, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, tasks)
+	resutil.HandleDataResponse(c, http.StatusOK, tasks)
 }

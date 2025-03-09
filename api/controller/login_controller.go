@@ -8,11 +8,13 @@ import (
 
 	"github.com/sportgo-app/sportgo-go/bootstrap"
 	"github.com/sportgo-app/sportgo-go/domain"
+	"github.com/sportgo-app/sportgo-go/internal/resutil"
 )
 
 type LoginController struct {
-	LoginUsecase domain.LoginUsecase
-	Env          *bootstrap.Env
+	LoginUsecase      domain.LoginUsecase
+	SocialAuthUsecase domain.SocialAuthUsecase
+	Env               *bootstrap.Env
 }
 
 func (lc *LoginController) CheckUserExists(c *gin.Context) {
@@ -20,12 +22,12 @@ func (lc *LoginController) CheckUserExists(c *gin.Context) {
 
 	err := c.ShouldBind(&request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	if request.Email == "" && request.PhoneNumber == "" {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: "Either email or phone number must be provided"})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, nil, "Either email or phone number must be provided")
 		return
 	}
 
@@ -38,7 +40,21 @@ func (lc *LoginController) CheckUserExists(c *gin.Context) {
 		exists = err == nil
 	}
 
-	c.JSON(http.StatusOK, domain.UserCheckResponse{Exists: exists})
+	resutil.HandleDataResponse(c, http.StatusOK, domain.UserCheckResponse{Exists: exists})
+}
+
+func (lc *LoginController) generateTokens(user *domain.User) (string, string, error) {
+	accessToken, err := lc.LoginUsecase.CreateAccessToken(user, lc.Env.AccessTokenSecret, lc.Env.AccessTokenExpiryHour)
+	if err != nil {
+		return "", "", err
+	}
+
+	refreshToken, err := lc.LoginUsecase.CreateRefreshToken(user, lc.Env.RefreshTokenSecret, lc.Env.RefreshTokenExpiryHour)
+	if err != nil {
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
 }
 
 func (lc *LoginController) LoginWithEmail(c *gin.Context) {
@@ -46,30 +62,24 @@ func (lc *LoginController) LoginWithEmail(c *gin.Context) {
 
 	err := c.ShouldBind(&request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := lc.LoginUsecase.GetUserByEmail(c, request.Email)
 	if err != nil {
-		c.JSON(http.StatusNotFound, domain.ErrorResponse{Message: "User not found with the given email"})
+		resutil.HandleErrorResponse(c, http.StatusNotFound, err, "User not found with the given email")
 		return
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password)) != nil {
-		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{Message: "Invalid credentials"})
+		resutil.HandleErrorResponse(c, http.StatusUnauthorized, nil, "Invalid credentials")
 		return
 	}
 
-	accessToken, err := lc.LoginUsecase.CreateAccessToken(&user, lc.Env.AccessTokenSecret, lc.Env.AccessTokenExpiryHour)
+	accessToken, refreshToken, err := lc.generateTokens(&user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	refreshToken, err := lc.LoginUsecase.CreateRefreshToken(&user, lc.Env.RefreshTokenSecret, lc.Env.RefreshTokenExpiryHour)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -78,7 +88,7 @@ func (lc *LoginController) LoginWithEmail(c *gin.Context) {
 		RefreshToken: refreshToken,
 	}
 
-	c.JSON(http.StatusOK, loginResponse)
+	resutil.HandleDataResponse(c, http.StatusOK, loginResponse)
 }
 
 func (lc *LoginController) LoginWithPhone(c *gin.Context) {
@@ -86,30 +96,24 @@ func (lc *LoginController) LoginWithPhone(c *gin.Context) {
 
 	err := c.ShouldBind(&request)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
 		return
 	}
 
 	user, err := lc.LoginUsecase.GetUserByPhone(c, request.PhoneNumber)
 	if err != nil {
-		c.JSON(http.StatusNotFound, domain.ErrorResponse{Message: "User not found with the given phone number"})
+		resutil.HandleErrorResponse(c, http.StatusNotFound, err, "User not found with the given phone number")
 		return
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password)) != nil {
-		c.JSON(http.StatusUnauthorized, domain.ErrorResponse{Message: "Invalid credentials"})
+		resutil.HandleErrorResponse(c, http.StatusUnauthorized, nil, "Invalid credentials")
 		return
 	}
 
-	accessToken, err := lc.LoginUsecase.CreateAccessToken(&user, lc.Env.AccessTokenSecret, lc.Env.AccessTokenExpiryHour)
+	accessToken, refreshToken, err := lc.generateTokens(&user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
-		return
-	}
-
-	refreshToken, err := lc.LoginUsecase.CreateRefreshToken(&user, lc.Env.RefreshTokenSecret, lc.Env.RefreshTokenExpiryHour)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, domain.ErrorResponse{Message: err.Error()})
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -118,5 +122,46 @@ func (lc *LoginController) LoginWithPhone(c *gin.Context) {
 		RefreshToken: refreshToken,
 	}
 
-	c.JSON(http.StatusOK, loginResponse)
+	resutil.HandleDataResponse(c, http.StatusOK, loginResponse)
+}
+
+func (sc *LoginController) SocialLogin(c *gin.Context) {
+	var request domain.SocialAuthRequest
+
+	err := c.ShouldBind(&request)
+	if err != nil {
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, err)
+		return
+	}
+
+	var user *domain.User
+	switch request.Provider {
+	case "google":
+		user, err = sc.SocialAuthUsecase.AuthenticateGoogle(c, request.AccessToken)
+	case "facebook":
+		user, err = sc.SocialAuthUsecase.AuthenticateFacebook(c, request.AccessToken)
+	case "apple":
+		user, err = sc.SocialAuthUsecase.AuthenticateApple(c, request.AccessToken)
+	default:
+		resutil.HandleErrorResponse(c, http.StatusBadRequest, nil, "Invalid provider")
+		return
+	}
+
+	if err != nil {
+		resutil.HandleErrorResponse(c, http.StatusUnauthorized, err)
+		return
+	}
+
+	accessToken, refreshToken, err := sc.generateTokens(user)
+	if err != nil {
+		resutil.HandleErrorResponse(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	socialAuthResponse := domain.SocialAuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}
+
+	resutil.HandleDataResponse(c, http.StatusOK, socialAuthResponse)
 }
