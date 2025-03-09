@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/sportgo-app/sportgo-go/domain"
 	"github.com/sportgo-app/sportgo-go/postgres"
@@ -20,6 +21,9 @@ func NewUserRepository(db postgres.Database, table string) domain.UserRepository
 }
 
 func (ur *userRepository) Create(c context.Context, user *domain.User) error {
+	now := time.Now()
+	user.CreatedAt = now
+	user.UpdatedAt = now
 	_, err := ur.db.NewInsert().Model(user).Exec(c)
 	return err
 }

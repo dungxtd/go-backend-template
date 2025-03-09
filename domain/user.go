@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"time"
 
 	"github.com/uptrace/bun"
 )
@@ -11,11 +12,13 @@ const (
 )
 
 type User struct {
-	ID            string `json:"id" bun:"id,pk"`
-	Name          string `json:"name" bun:"name"`
-	Email         string `json:"email" bun:"email"`
-	PhoneNumber   string `json:"phone_number" bun:"phone_number"`
-	Password      string `json:"-" bun:"password"`
+	ID            string    `json:"id" bun:"id,pk"`
+	CreatedAt     time.Time `json:"created_at" bun:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at" bun:"updated_at"`
+	Name          string    `json:"name" bun:"name"`
+	Email         string    `json:"email" bun:"email"`
+	PhoneNumber   string    `json:"phone_number" bun:"phone_number"`
+	Password      string    `json:"-" bun:"password"`
 	bun.BaseModel `bun:"table:users,alias:u"`
 }
 
