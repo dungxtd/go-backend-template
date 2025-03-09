@@ -1,2 +1,5 @@
-DELETE FROM tasks WHERE id IN ('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'd0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a15', 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a16');
-DELETE FROM users WHERE id IN ('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12');
+-- Delete data in reverse order of dependencies
+DELETE FROM saved_venues;
+DELETE FROM bookings;
+DELETE FROM venues;
+DELETE FROM users;
