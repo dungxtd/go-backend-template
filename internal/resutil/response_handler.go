@@ -11,14 +11,14 @@ import (
 func NewErrorResponse(err error, userMessage ...string) domain.ErrorResponse {
 	appEnv := viper.GetString("APP_ENV")
 
+	// Use null coalescing pattern for userMessage
+	var message string
+	if len(userMessage) > 0 {
+		message = userMessage[0]
+	}
+
 	// Handle development environment
 	if appEnv == "development" || appEnv == "dev" {
-		// Use null coalescing pattern for userMessage
-		var message string
-		if len(userMessage) > 0 {
-			message = userMessage[0]
-		}
-
 		return domain.ErrorResponse{
 			Message: message,
 			Error:   err.Error(),
@@ -27,7 +27,8 @@ func NewErrorResponse(err error, userMessage ...string) domain.ErrorResponse {
 
 	// For production environment
 	return domain.ErrorResponse{
-		Message: "something went wrong",
+		Message: message,
+		Error:   "something went wrong",
 	}
 }
 

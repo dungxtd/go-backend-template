@@ -14,6 +14,9 @@ CREATE TABLE users (
 	email text,
 	password text NOT NULL,
 	phone_number text,
+	google_id text,
+	facebook_id text,
+	apple_id text,
 	role SMALLINT CHECK (role BETWEEN 0 AND 2) DEFAULT 0, -- 0: customer, 1: owner, 2: admin,
 	created_at timestamp with time zone NOT NULL DEFAULT current_timestamp,
 	updated_at timestamp with time zone DEFAULT current_timestamp,
@@ -23,7 +26,7 @@ CREATE TABLE users (
 const venuesTable = `
 CREATE TABLE venues (
     id SERIAL PRIMARY KEY,
-    owner_id INT REFERENCES users(id) ON DELETE SET NULL,
+    owner_id UUID REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(255) NOT NULL,
     address TEXT NOT NULL,
     latitude DECIMAL(9,6) NOT NULL,  -- Vĩ độ
@@ -36,7 +39,7 @@ CREATE TABLE venues (
 const bookingsTable = `
 CREATE TABLE bookings (
     id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     venue_id INT REFERENCES venues(id) ON DELETE CASCADE,
     booking_date DATE NOT NULL,
     start_time TIME NOT NULL,
@@ -49,7 +52,7 @@ CREATE TABLE bookings (
 const savedVenuesTable = `
 CREATE TABLE saved_venues (
     id SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     venue_id INT REFERENCES venues(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT NOW(),
     UNIQUE (user_id, venue_id)

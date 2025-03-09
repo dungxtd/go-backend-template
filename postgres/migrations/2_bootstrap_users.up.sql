@@ -1,8 +1,8 @@
 -- Insert users with different roles (0: customer, 1: owner, 2: admin)
-INSERT INTO users (id, name, email, password, phone_number, role) VALUES
-('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'John Customer', 'john@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1234567890', 0),
-('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Jane Owner', 'jane@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1987654321', 1),
-('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Admin User', 'admin@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1122334455', 2);
+INSERT INTO users (id, name, email, password, phone_number, google_id, facebook_id, apple_id, role) VALUES
+('a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'John Customer', 'john@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1234567890', NULL, NULL, NULL, 0),
+('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'Jane Owner', 'jane@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1987654321', NULL, NULL, NULL, 1),
+('c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'Admin User', 'admin@example.com', '$2a$10$h8moN5PaZ5pPRvzn6JHYkOkrvZKzIwXrD5XH5YU.f/YD9E4R/iEZy', '+1122334455', NULL, NULL, NULL, 2);
 
 -- Insert venues (sport_type: 0: football, 1: basketball, 2: tennis, 3: badminton)
 INSERT INTO venues (id, owner_id, name, address, latitude, longitude, sport_type, price_per_hour) VALUES
